@@ -206,6 +206,29 @@ void ImageViewer::ViewerWidgetEnter(ViewerWidget* w, QEvent* event)
 void ImageViewer::ViewerWidgetWheel(ViewerWidget* w, QEvent* event)
 {
 	QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+
+	if (!drawingEnabled)
+	{
+		double scaleFactorXY = 0.0;
+		double sX = polygonPoints.at(0).x();
+		double sY = polygonPoints.at(0).y();
+
+
+		if (wheelEvent->angleDelta().y() > 0)
+			scaleFactorXY = 1.25;
+		else if (wheelEvent->angleDelta().y() < 0)
+			scaleFactorXY = 0.75;
+
+		for (int i = 0; i < polygonPoints.size(); i++)
+		{
+			polygonPoints[i].setX(sX + static_cast<int>((polygonPoints.at(i).x() - sX) * scaleFactorXY));
+			polygonPoints[i].setY(sY + static_cast<int>((polygonPoints.at(i).y() - sY) * scaleFactorXY));
+		}
+
+		getCurrentViewerWidget()->clear();
+
+		drawPolygon(&polygonPoints, currentColor);
+	}
 }
 
 //ImageViewer Events
