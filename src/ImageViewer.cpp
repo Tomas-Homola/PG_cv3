@@ -12,6 +12,7 @@ ImageViewer::ImageViewer(QWidget* parent)
 	ui->tabWidget->setCurrentIndex(ui->tabWidget->count() - 1);
 
 	ui->pushButton_ClearPolygon->setEnabled(false);
+	ui->groupBox_Transformations->setEnabled(false);
 }
 
 void ImageViewer::infoMessage(QString message)
@@ -138,6 +139,7 @@ void ImageViewer::ViewerWidgetMouseButtonPress(ViewerWidget* w, QEvent* event)
 			}
 			
 			drawingEnabled = false;
+			ui->groupBox_Transformations->setEnabled(true);
 
 			printPoints(&polygonPoints);
 		}
@@ -404,8 +406,50 @@ void ImageViewer::on_pushButton_ClearPolygon_clicked()
 {
 	ui->pushButton_ClearPolygon->setEnabled(false);
 	ui->pushButton_CreatePolygon->setEnabled(true);
+	ui->groupBox_Transformations->setEnabled(false);
 
 	drawingEnabled = false;
 	polygonPoints.clear();
 	getCurrentViewerWidget()->clear();
+}
+
+void ImageViewer::on_pushButton_Rotate_clicked()
+{
+	double angle = ((double)ui->spinBox_Angle->value() / 180.0) * M_PI;
+	double sX = polygonPoints.at(0).x();
+	double sY = polygonPoints.at(0).y();
+	double x = 0, y = 0;
+
+	if (ui->spinBox_Angle->value() < 0)
+	{
+		//qDebug() << "clockwise";
+		
+		for (int i = 1; i < polygonPoints.size(); i++)
+		{
+			x = polygonPoints.at(i).x();
+			y = polygonPoints.at(i).y();
+
+			polygonPoints[i].setX(static_cast<int>((x - sX) * qCos(angle) + (y - sY) * qSin(angle) + sX));
+			polygonPoints[i].setY(static_cast<int>(-(x - sX) * qSin(angle) + (y - sY) * qCos(angle) + sY));
+		}
+	}
+	else if (ui->spinBox_Angle->value() > 0)
+	{
+		//qDebug() << "anti-clockwise";
+		angle = 2 * M_PI - angle;
+		for (int i = 1; i < polygonPoints.size(); i++)
+		{
+			x = polygonPoints.at(i).x();
+			y = polygonPoints.at(i).y();
+
+			polygonPoints[i].setX(static_cast<int>((x - sX) * qCos(angle) - (y - sY) * qSin(angle) + sX));
+			polygonPoints[i].setY(static_cast<int>((x - sX) * qSin(angle) + (y - sY) * qCos(angle) + sY));
+		}
+	}
+
+	getCurrentViewerWidget()->clear();
+
+	drawPolygon(&polygonPoints, currentColor);
+
+	
 }

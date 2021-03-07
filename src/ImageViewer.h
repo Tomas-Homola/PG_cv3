@@ -78,8 +78,10 @@ private slots:
 	void on_actionClear_triggered();
 	void on_actionSet_background_color_triggered();
 
-	// cv2 slots
+	// cv3 slots
 	void on_pushButton_ColorDialog_clicked();
 	void on_pushButton_CreatePolygon_clicked();
 	void on_pushButton_ClearPolygon_clicked();
+
+	void on_pushButton_Rotate_clicked();
 };
