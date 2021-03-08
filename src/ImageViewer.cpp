@@ -506,8 +506,7 @@ void ImageViewer::on_pushButton_Symmetry_clicked()
 
 	if (polygonPoints.size() == 2) // usecka
 	{
-		if ((polygonPoints.at(0).x() != polygonPoints.at(1).x()) || (polygonPoints.at(0).y() != polygonPoints.at(1).y()))
-		deltaY = qAbs(polygonPoints.at(0).y() - midPointY);
+		deltaY = qAbs(polygonPoints.at(0).y() - midPointY); // 
 
 		if (polygonPoints.at(0).y() < midPointY)
 		{
