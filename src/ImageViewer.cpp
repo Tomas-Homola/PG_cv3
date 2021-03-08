@@ -31,21 +31,21 @@ void ImageViewer::warningMessage(QString message)
 	msgBox.exec();
 }
 
-void ImageViewer::drawPolygon(QVector<QPoint>* polygonPoints, QColor color)
+void ImageViewer::drawPolygon(QVector<QPoint>& polygonPoints, QColor color)
 {
-	for (int i = 1; i <= polygonPoints->size(); i++)
+	for (int i = 1; i <= polygonPoints.size(); i++)
 	{
-		if (i == polygonPoints->size())
-		createLineWithAlgorithm(polygonPoints->at(0), polygonPoints->at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+		if (i == polygonPoints.size())
+			createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
 		else
-			createLineWithAlgorithm(polygonPoints->at(i), polygonPoints->at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+			createLineWithAlgorithm(polygonPoints.at(i), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
 	}
 }
 
-void ImageViewer::printPoints(QVector<QPoint>* polygonPoints)
+void ImageViewer::printPoints(QVector<QPoint>& polygonPoints)
 {
-	for (int i = 0; i < polygonPoints->size(); i++)
-		qDebug() << polygonPoints->at(i);
+	for (int i = 0; i < polygonPoints.size(); i++)
+		qDebug() << polygonPoints.at(i);
 	qDebug() << "\n";
 }
 
@@ -123,7 +123,7 @@ void ImageViewer::ViewerWidgetMouseButtonPress(ViewerWidget* w, QEvent* event)
 			{
 				createLineWithAlgorithm(polygonPoints.at(polygonPoints.size() - 1), polygonPoints.at(polygonPoints.size() - 2), currentColor, ui->comboBox_SelectAlgorithm->currentIndex());
 			}
-			printPoints(&polygonPoints);
+			printPoints(polygonPoints);
 
 		}
 		else if (e->button() == Qt::RightButton) // ukoncenie kreslenia
@@ -133,7 +133,7 @@ void ImageViewer::ViewerWidgetMouseButtonPress(ViewerWidget* w, QEvent* event)
 				polygonPoints.push_back(e->pos());
 				createLineWithAlgorithm(polygonPoints.at(1), polygonPoints.at(0), currentColor, ui->comboBox_SelectAlgorithm->currentIndex());
 			}
-			else if (polygonPoints.size() != 2) // ak by uz bola nakreslena usecka, tak sa znovu nenakresli
+			else if (polygonPoints.size() > 2) // ak by uz bola nakreslena usecka, tak sa znovu nenakresli
 			{
 				createLineWithAlgorithm(polygonPoints.at(polygonPoints.size() - 1), polygonPoints.at(0), currentColor, ui->comboBox_SelectAlgorithm->currentIndex());
 			}
@@ -141,7 +141,7 @@ void ImageViewer::ViewerWidgetMouseButtonPress(ViewerWidget* w, QEvent* event)
 			drawingEnabled = false;
 			ui->groupBox_Transformations->setEnabled(true);
 
-			printPoints(&polygonPoints);
+			printPoints(polygonPoints);
 		}
 	}
 	else // nejde sa kreslit, ale posuvat polygon
@@ -170,7 +170,7 @@ void ImageViewer::ViewerWidgetMouseButtonRelease(ViewerWidget* w, QEvent* event)
 
 		getCurrentViewerWidget()->clear(); // vymazanie stareho polygonu
 
-		drawPolygon(&polygonPoints, currentColor);
+		drawPolygon(polygonPoints, currentColor);
 	}
 }
 void ImageViewer::ViewerWidgetMouseMove(ViewerWidget* w, QEvent* event)
@@ -192,7 +192,7 @@ void ImageViewer::ViewerWidgetMouseMove(ViewerWidget* w, QEvent* event)
 
 		getCurrentViewerWidget()->clear(); // vymazanie stareho polygonu
 
-		drawPolygon(&polygonPoints, currentColor);
+		drawPolygon(polygonPoints, currentColor);
 
 		mousePosition[0] = mousePosition[1];
 	}
@@ -227,7 +227,7 @@ void ImageViewer::ViewerWidgetWheel(ViewerWidget* w, QEvent* event)
 
 		getCurrentViewerWidget()->clear();
 
-		drawPolygon(&polygonPoints, currentColor);
+		drawPolygon(polygonPoints, currentColor);
 	}
 }
 
@@ -432,16 +432,18 @@ void ImageViewer::on_pushButton_ClearPolygon_clicked()
 	ui->groupBox_Transformations->setEnabled(false);
 
 	drawingEnabled = false;
+	//qDebug() << "polygon size before:" << polygonPoints.size();
 	polygonPoints.clear();
+	//qDebug() << "polygon size after:" << polygonPoints.size();
 	getCurrentViewerWidget()->clear();
 }
 
 void ImageViewer::on_pushButton_Rotate_clicked()
 {
-	double angle = ((double)ui->spinBox_Angle->value() / 180.0) * M_PI;
+	double angle = (ui->spinBox_Angle->value() / 180.0) * M_PI;
 	double sX = polygonPoints.at(0).x();
 	double sY = polygonPoints.at(0).y();
-	double x = 0, y = 0;
+	double x = 0.0, y = 0.0;
 
 	if (ui->spinBox_Angle->value() < 0)
 	{
@@ -472,7 +474,66 @@ void ImageViewer::on_pushButton_Rotate_clicked()
 
 	getCurrentViewerWidget()->clear();
 
-	drawPolygon(&polygonPoints, currentColor);
-
-	
+	drawPolygon(polygonPoints, currentColor);
 }
+
+void ImageViewer::on_pushButton_Shear_clicked()
+{
+	double shearFactor = ui->doubleSpinBox_ShearFactor->value();
+	double sY = polygonPoints.at(0).y();
+
+	for (int i = 1; i < polygonPoints.size(); i++)
+		polygonPoints[i].setX(static_cast<int>(polygonPoints.at(i).x() + shearFactor * (polygonPoints.at(i).y() - sY)));
+
+	getCurrentViewerWidget()->clear();
+
+	drawPolygon(polygonPoints, currentColor);
+}
+
+void ImageViewer::on_pushButton_Symmetry_clicked()
+{
+	// symetria polygonu cez usecku medzi prvym a druhym bodom
+	// symetria usecky cez horizontalnu priamku prechadzajucu stredom usecky
+	double u = static_cast<double>(polygonPoints.at(1).x()) - polygonPoints.at(0).x();
+	double v = static_cast<double>(polygonPoints.at(1).y()) - polygonPoints.at(0).y();
+	double a = v;
+	double b = -u;
+	double c = -a * polygonPoints.at(0).x() - b * polygonPoints.at(0).y();
+	double x = 0.0, y = 0.0;
+	int midPointX = qAbs((polygonPoints.at(1).x() + polygonPoints.at(0).x()) / 2);
+	int midPointY = qAbs((polygonPoints.at(1).y() + polygonPoints.at(0).y()) / 2);
+	int deltaY = 0;
+
+	if (polygonPoints.size() == 2) // usecka
+	{
+		if ((polygonPoints.at(0).x() != polygonPoints.at(1).x()) || (polygonPoints.at(0).y() != polygonPoints.at(1).y()))
+		deltaY = qAbs(polygonPoints.at(0).y() - midPointY);
+
+		if (polygonPoints.at(0).y() < midPointY)
+		{
+			polygonPoints[0].setY(polygonPoints.at(0).y() + 2 * deltaY);
+			polygonPoints[1].setY(polygonPoints.at(1).y() - 2 * deltaY);
+		}
+		else if (polygonPoints.at(0).y() > midPointY)
+		{
+			polygonPoints[0].setY(polygonPoints.at(0).y() - 2 * deltaY);
+			polygonPoints[1].setY(polygonPoints.at(1).y() + 2 * deltaY);
+		}
+	}
+	else if (polygonPoints.size() > 2) // polygon
+	{
+		for (int i = 2; i < polygonPoints.size(); i++)
+		{
+			x = polygonPoints.at(i).x();
+			y = polygonPoints.at(i).y();
+
+			polygonPoints[i].setX(static_cast<int>(x - 2 * a * ((a * x + b * y + c) / (a * a + b * b))));
+			polygonPoints[i].setY(static_cast<int>(y - 2 * b * ((a * x + b * y + c) / (a * a + b * b))));
+		}
+	}
+
+	getCurrentViewerWidget()->clear();
+
+	drawPolygon(polygonPoints, currentColor);
+}
+

@@ -30,8 +30,8 @@ private:
 
 	void infoMessage(QString message);
 	void warningMessage(QString message);
-	void drawPolygon(QVector<QPoint>* polygonPoints, QColor color);
-	void printPoints(QVector<QPoint>* polygonPoints);
+	void drawPolygon(QVector<QPoint>& polygonPoints, QColor color);
+	void printPoints(QVector<QPoint>& polygonPoints);
 
 	void createLineWithAlgorithm(QPoint point1, QPoint point2, QColor color, int algorithm);
 
@@ -84,4 +84,6 @@ private slots:
 	void on_pushButton_ClearPolygon_clicked();
 
 	void on_pushButton_Rotate_clicked();
+	void on_pushButton_Shear_clicked();
+	void on_pushButton_Symmetry_clicked();
 };

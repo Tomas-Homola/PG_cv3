@@ -254,7 +254,7 @@
              <item>
               <widget class="QLabel" name="label_Angle">
                <property name="text">
-                <string>angle(deg)</string>
+                <string>Angle(deg)</string>
                </property>
               </widget>
              </item>
@@ -298,12 +298,25 @@
              <item>
               <widget class="QLabel" name="label_ShearFactor">
                <property name="text">
-                <string>TextLabel</string>
+                <string>Shear factor:</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QDoubleSpinBox" name="doubleSpinBox_ShearFactor"/>
+              <widget class="QDoubleSpinBox" name="doubleSpinBox_ShearFactor">
+               <property name="decimals">
+                <number>1</number>
+               </property>
+               <property name="minimum">
+                <double>-1.500000000000000</double>
+               </property>
+               <property name="maximum">
+                <double>1.500000000000000</double>
+               </property>
+               <property name="singleStep">
+                <double>0.100000000000000</double>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
