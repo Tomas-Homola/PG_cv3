@@ -34,6 +34,9 @@ private:
 	void printPoints(QVector<QPoint>& polygonPoints);
 
 	void createLineWithAlgorithm(QPoint point1, QPoint point2, QColor color, int algorithm);
+	void trimLine(QVector<QPoint>& currentLine);
+	void trimPolygon(QVector<QPoint>& polygonPoints);
+	void trim(QVector<QPoint>& polygonPoints);
 
 
 	//ViewerWidget functions

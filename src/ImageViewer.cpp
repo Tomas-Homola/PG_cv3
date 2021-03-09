@@ -33,13 +33,19 @@ void ImageViewer::warningMessage(QString message)
 
 void ImageViewer::drawPolygon(QVector<QPoint>& polygonPoints, QColor color)
 {
-	for (int i = 1; i <= polygonPoints.size(); i++)
+	if (polygonPoints.size() == 2) // usecka
+		createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+	else if (polygonPoints.size() > 2) // polygon
 	{
-		if (i == polygonPoints.size())
-			createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
-		else
-			createLineWithAlgorithm(polygonPoints.at(i), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+		for (int i = 1; i <= polygonPoints.size(); i++)
+		{
+			if (i == polygonPoints.size())
+				createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+			else
+				createLineWithAlgorithm(polygonPoints.at(i), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+		}
 	}
+	
 }
 
 void ImageViewer::printPoints(QVector<QPoint>& polygonPoints)
@@ -51,11 +57,130 @@ void ImageViewer::printPoints(QVector<QPoint>& polygonPoints)
 
 void ImageViewer::createLineWithAlgorithm(QPoint point1, QPoint point2, QColor color, int algorithm)
 {
+	//qDebug() << "line drawn:" << point1 << point2;
 	if (algorithm == 0) // DDA
 		getCurrentViewerWidget()->drawLineDDA(point1, point2, color);
 	else if (algorithm == 1) // mr. Bresenham
 		getCurrentViewerWidget()->drawLineBresenham(point1, point2, color);
 }
+
+void ImageViewer::trimLine(QVector<QPoint>& currentLine)
+{
+	int imgHeight = getCurrentViewerWidget()->getImgHeight();
+	int imgWidth = getCurrentViewerWidget()->getImgWidth();
+	QPoint E[4]; // pole vrcholov obrazka
+	E[0] = QPoint(0, 0); E[3] = QPoint(imgWidth, 0);
+	E[1] = QPoint(0, imgHeight); E[2] = QPoint(imgWidth, imgHeight);
+	QPoint P1 = currentLine[0], P2 = currentLine[1];
+	QPoint newP1(0, 0), newP2(0, 0);
+	QVector<QPoint> newLine;
+	QPoint vectorD = P2 - P1, vectorW(0, 0), vectorE(0, 0), normalE(0, 0);
+	double tL = 0.0, tU = 1.0, t = 0.0;
+	int dotProductDN = 0, dotProductWN = 0;
+
+	bool areInside = false;
+	bool shouldTrim = false;
+
+	if ((P1.x() >= 0 && P1.x() <= imgWidth && P1.y() >= 0 && P1.y() <= imgHeight) || (P2.x() >= 0 && P2.x() <= imgWidth && P2.y() >= 0 && P2.y() <= imgHeight))
+		areInside = true;
+
+	//https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+	if (!areInside) // ci sa usecka nachadza v nejakom rohu tak, ze oba body su uz mimo, ale mala by sa este osekavat
+	{
+		int intersections = 0;
+		double s = 0.0, t = 0.0;
+		int denom = 0;
+		int upperS = 0;
+		int upperT = 0;
+
+		for (int i = 0; i < 4; i++)
+		{
+			if (i == 3)
+				vectorE = E[0] - E[3];
+			else
+				vectorE = E[i + 1] - E[i];
+
+			denom = -vectorE.x() * vectorD.y() + vectorD.x() * vectorE.y();
+			upperS = -vectorD.y() * (P1.x() - E[i].x()) + vectorD.x() * (P1.y() - E[i].y());
+			upperT = vectorE.x() * (P1.y() - E[i].y()) - vectorE.y() * (P1.x() - E[i].x());
+			s = static_cast<double>(upperS) / denom;
+			t = static_cast<double>(upperT) / denom;
+
+			if (s >= 0.0 && s <= 1.0 && t >= 0 && t <= 1.0)
+				intersections++;
+		}
+
+		if (intersections != 2)
+			shouldTrim = false;
+		else
+			shouldTrim = true;
+	}
+
+	if (areInside || shouldTrim)
+	{
+		qDebug() << "trimming line";
+
+		for (int i = 0; i < 4; i++)
+		{
+			// direct vector hrany obrazka
+			if (i == 3)
+				vectorE = E[0] - E[3];
+			else
+				vectorE = E[i + 1] - E[i];
+
+			// z direct vectora spravime normalu: (x, y) -> (-y, x)
+			normalE.setX(vectorE.y()); normalE.setY(-vectorE.x());
+			vectorW = P1 - E[i];
+
+			// skalarne suciny
+			dotProductDN = QPoint::dotProduct(vectorD, normalE);
+			dotProductWN = QPoint::dotProduct(vectorW, normalE);
+
+			if (dotProductDN != 0)
+			{
+				t = static_cast<double>(-dotProductWN) / dotProductDN;
+
+				if (dotProductDN > 0 && t <= 1.0)
+					tL = std::max(t, tL);
+				else if (dotProductDN < 0 && t >= 0.0)
+					tU = std::min(t, tU);
+			}
+		}
+		qDebug() << "tL:" << tL << "\ttU:" << tU;
+		if (tL == 0.0 && tU == 1.0)
+			drawPolygon(currentLine, currentColor);
+		else if (tL < tU)
+		{
+			newP1.setX(static_cast<int>(P1.x() + ((double)P2.x() - P1.x()) * tL));
+			newP1.setY(static_cast<int>(P1.y() + ((double)P2.y() - P1.y()) * tL));
+
+			newP2.setX(static_cast<int>(P1.x() + ((double)P2.x() - P1.x()) * tU));
+			newP2.setY(static_cast<int>(P1.y() + ((double)P2.y() - P1.y()) * tU));
+
+			newLine.push_back(newP1); newLine.push_back(newP2);
+
+			drawPolygon(newLine, currentColor);
+		}
+	}
+	else
+		drawPolygon(polygonPoints, currentColor);
+}
+
+void ImageViewer::trimPolygon(QVector<QPoint>& polygonPoints)
+{
+	qDebug() << "trimming polygon";
+
+	drawPolygon(polygonPoints, currentColor);
+}
+
+void ImageViewer::trim(QVector<QPoint>& polygonPoints)
+{
+	if (polygonPoints.size() == 2)
+		trimLine(polygonPoints);
+	else if (polygonPoints.size() > 2)
+		trimPolygon(polygonPoints);
+}
+
 
 //ViewerWidget functions
 ViewerWidget* ImageViewer::getViewerWidget(int tabId)
@@ -156,21 +281,26 @@ void ImageViewer::ViewerWidgetMouseButtonRelease(ViewerWidget* w, QEvent* event)
 
 	if (e->button() == Qt::LeftButton && !drawingEnabled)
 	{
-		mousePosition[1] = e->pos();
-
-		int pX = mousePosition[1].x() - mousePosition[0].x();
-		int pY = mousePosition[1].y() - mousePosition[0].y();
-
-		for (int i = 0; i < polygonPoints.size(); i++) // prepocitanie suradnic polygonu
+		if (mousePosition[1] != e->pos())
 		{
-			// poznamka pre autora: [i] vracia modifikovatelny objekt, .at(i) vracia const objekt
-			polygonPoints[i].setX(polygonPoints[i].x() + pX);
-			polygonPoints[i].setY(polygonPoints[i].y() + pY);
+			mousePosition[1] = e->pos();
+
+			int pX = mousePosition[1].x() - mousePosition[0].x();
+			int pY = mousePosition[1].y() - mousePosition[0].y();
+
+			for (int i = 0; i < polygonPoints.size(); i++) // prepocitanie suradnic polygonu
+			{
+				// poznamka pre autora: [i] vracia modifikovatelny objekt, .at(i) vracia const objekt
+				polygonPoints[i].setX(polygonPoints[i].x() + pX);
+				polygonPoints[i].setY(polygonPoints[i].y() + pY);
+			}
+
+			getCurrentViewerWidget()->clear(); // vymazanie stareho polygonu
+
+			trim(polygonPoints);
+			//drawPolygon(polygonPoints, currentColor);
 		}
-
-		getCurrentViewerWidget()->clear(); // vymazanie stareho polygonu
-
-		drawPolygon(polygonPoints, currentColor);
+		
 	}
 }
 void ImageViewer::ViewerWidgetMouseMove(ViewerWidget* w, QEvent* event)
@@ -192,7 +322,8 @@ void ImageViewer::ViewerWidgetMouseMove(ViewerWidget* w, QEvent* event)
 
 		getCurrentViewerWidget()->clear(); // vymazanie stareho polygonu
 
-		drawPolygon(polygonPoints, currentColor);
+		trim(polygonPoints);
+		//drawPolygon(polygonPoints, currentColor);
 
 		mousePosition[0] = mousePosition[1];
 	}
@@ -474,7 +605,8 @@ void ImageViewer::on_pushButton_Rotate_clicked()
 
 	getCurrentViewerWidget()->clear();
 
-	drawPolygon(polygonPoints, currentColor);
+	trim(polygonPoints);
+	//drawPolygon(polygonPoints, currentColor);
 }
 
 void ImageViewer::on_pushButton_Shear_clicked()
@@ -487,7 +619,8 @@ void ImageViewer::on_pushButton_Shear_clicked()
 
 	getCurrentViewerWidget()->clear();
 
-	drawPolygon(polygonPoints, currentColor);
+	trim(polygonPoints);
+	//drawPolygon(polygonPoints, currentColor);
 }
 
 void ImageViewer::on_pushButton_Symmetry_clicked()
@@ -533,6 +666,7 @@ void ImageViewer::on_pushButton_Symmetry_clicked()
 
 	getCurrentViewerWidget()->clear();
 
-	drawPolygon(polygonPoints, currentColor);
+	trim(polygonPoints);
+	//drawPolygon(polygonPoints, currentColor);
 }
 
