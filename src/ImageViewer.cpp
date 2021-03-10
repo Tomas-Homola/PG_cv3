@@ -34,15 +34,15 @@ void ImageViewer::warningMessage(QString message)
 void ImageViewer::drawPolygon(QVector<QPoint>& polygonPoints, QColor color)
 {
 	if (polygonPoints.size() == 2) // usecka
-		createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+		createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(1), color, ui->comboBox_SelectAlgorithm->currentIndex());
 	else if (polygonPoints.size() > 2) // polygon
 	{
 		for (int i = 1; i <= polygonPoints.size(); i++)
 		{
 			if (i == polygonPoints.size())
-				createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+				createLineWithAlgorithm(polygonPoints.at(0), polygonPoints.at(i - 1), color, ui->comboBox_SelectAlgorithm->currentIndex());
 			else
-				createLineWithAlgorithm(polygonPoints.at(i), polygonPoints.at(i - 1), QColor("#ff0000"), ui->comboBox_SelectAlgorithm->currentIndex());
+				createLineWithAlgorithm(polygonPoints.at(i), polygonPoints.at(i - 1), color, ui->comboBox_SelectAlgorithm->currentIndex());
 		}
 	}
 	
@@ -188,7 +188,7 @@ void ImageViewer::trimPolygon(QVector<QPoint>& polygonPoints)
 					W.push_back(V[j]);
 				else
 				{
-					temp = static_cast<int>(S.y() + (xMin[i] - S.x()) * (V[j].y() - S.y()) / (double)(V[j].x() - S.x()) + 0.5);
+					temp = static_cast<int>(S.y() + ((double)xMin[i] - S.x()) * (V[j].y() - S.y()) / ((double)V[j].x() - S.x()) + 0.5);
 					//temp = static_cast<double>(S.y()) + (static_cast<double>(xMin[i]) - S.x()) * static_cast<double>(((V.at(j).y() - S.y()) / (V.at(j).x() - S.x())));
 					W.push_back(QPoint(xMin[i], temp)); // priesecnik P
 					W.push_back(V[j]);
@@ -198,7 +198,7 @@ void ImageViewer::trimPolygon(QVector<QPoint>& polygonPoints)
 			{
 				if (S.x() >= xMin[i])
 				{
-					temp = static_cast<int>(S.y() + (xMin[i] - S.x()) * (V[j].y() - S.y()) / (double)(V[j].x() - S.x()) + 0.5);
+					temp = static_cast<int>(S.y() + ((double)xMin[i] - S.x()) * (V[j].y() - S.y()) / ((double)V[j].x() - S.x()) + 0.5);
 					//temp = static_cast<double>(S.y()) + (static_cast<double>(xMin[i]) - S.x()) * static_cast<double>(((V.at(j).y() - S.y()) / (V.at(j).x() - S.x())));
 					W.push_back(QPoint(xMin[i], temp)); // priesecnik P
 				}
@@ -403,7 +403,8 @@ void ImageViewer::ViewerWidgetWheel(ViewerWidget* w, QEvent* event)
 
 		getCurrentViewerWidget()->clear();
 
-		drawPolygon(polygonPoints, currentColor);
+		trim(polygonPoints);
+		//drawPolygon(polygonPoints, currentColor);
 	}
 }
 
@@ -590,6 +591,8 @@ void ImageViewer::on_pushButton_ColorDialog_clicked()
 	{
 		currentColor = chosenColor;
 		ui->pushButton_ColorDialog->setStyleSheet(QString("background-color:%1").arg(chosenColor.name()));
+		
+		trim(polygonPoints);
 	}
 }
 
