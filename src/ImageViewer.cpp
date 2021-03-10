@@ -168,11 +168,11 @@ void ImageViewer::trimLine(QVector<QPoint>& currentLine)
 
 void ImageViewer::trimPolygon(QVector<QPoint>& polygonPoints)
 {
-	QVector<QPoint> V = polygonPoints;
+	QVector<QPoint> V = polygonPoints; // kopia bodov
 	//printPoints(V);
 	QVector<QPoint> W;
 	QPoint S(0, 0);
-	int xMin[4] = { 0,0, -getCurrentViewerWidget()->getImgWidth() + 1, -getCurrentViewerWidget()->getImgHeight() + 1 }; // poznamka pre autora: obrazok v poznamkach ku hodnotam, z nejakeho dovodu ak tam nie je +1, to nekresli na spodnu hranu obrazka
+	int xMin[4] = { 0,0, -getCurrentViewerWidget()->getImgWidth() + 1, -getCurrentViewerWidget()->getImgHeight() + 1 }; // poznamka pre autora: obrazok v poznamkach ku tymto hodnotam; z nejakeho dovodu ak tam nie je +1, to nekresli na spodnu hranu obrazka
 	int temp = 0;
 
 	for (int i = 0; i < 4; i++)
@@ -188,7 +188,7 @@ void ImageViewer::trimPolygon(QVector<QPoint>& polygonPoints)
 					W.push_back(V[j]);
 				else
 				{
-					temp = static_cast<int>(S.y() + ((double)xMin[i] - S.x()) * (V[j].y() - S.y()) / ((double)V[j].x() - S.x()) + 0.5);
+					temp = static_cast<int>(S.y() + ((double)xMin[i] - S.x()) * ((double)V[j].y() - S.y()) / ((double)V[j].x() - S.x()) + 0.5);
 					//temp = static_cast<double>(S.y()) + (static_cast<double>(xMin[i]) - S.x()) * static_cast<double>(((V.at(j).y() - S.y()) / (V.at(j).x() - S.x())));
 					W.push_back(QPoint(xMin[i], temp)); // priesecnik P
 					W.push_back(V[j]);
@@ -198,7 +198,7 @@ void ImageViewer::trimPolygon(QVector<QPoint>& polygonPoints)
 			{
 				if (S.x() >= xMin[i])
 				{
-					temp = static_cast<int>(S.y() + ((double)xMin[i] - S.x()) * (V[j].y() - S.y()) / ((double)V[j].x() - S.x()) + 0.5);
+					temp = static_cast<int>(S.y() + ((double)xMin[i] - S.x()) * ((double)V[j].y() - S.y()) / ((double)V[j].x() - S.x()) + 0.5);
 					//temp = static_cast<double>(S.y()) + (static_cast<double>(xMin[i]) - S.x()) * static_cast<double>(((V.at(j).y() - S.y()) / (V.at(j).x() - S.x())));
 					W.push_back(QPoint(xMin[i], temp)); // priesecnik P
 				}
